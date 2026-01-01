@@ -90,10 +90,12 @@ else
     ((FAIL++))
 fi
 
-# Test RAG poisoning
-response=$(curl -s -X POST http://localhost:5050/api/rag/search -H "Content-Type: application/json" -d '{"query": "password"}')
-if echo "$response" | grep -q "company_knowledge"; then
-    echo "✅ RAG collection exists"
+# Test RAG poisoning via search
+response=$(curl -s -X POST http://localhost:5050/api/rag/search \
+    -H "Content-Type: application/json" \
+    -d '{"query": "password"}' 2>/dev/null)
+if echo "$response" | grep -q "SSN\|Social Security\|FLAG"; then
+    echo "✅ RAG collection working"
     ((PASS++))
 else
     echo "❌ RAG collection not found"

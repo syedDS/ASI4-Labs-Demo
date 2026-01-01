@@ -270,4 +270,6 @@ docker compose down --rmi all
 
 This lab is for **educational purposes only**. The vulnerabilities demonstrated here are intentional and designed for security training. Do not use these techniques against systems you don't own or have permission to test.
 
+## 📝 License
 
+MIT License - See LICENSE file for details.
