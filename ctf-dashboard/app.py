@@ -5,19 +5,21 @@ Track progress and view captured flags
 
 from flask import Flask, jsonify, render_template_string
 import os
+import json
 import requests
 
 app = Flask(__name__)
 
 ATTACKER_SERVER = os.getenv("ATTACKER_SERVER", "http://attacker-server:8666")
 
-# Challenge definitions
+# Challenge definitions — Labs 1, 2, 3, 5 (pre + post mitigation)
 CHALLENGES = {
     "ASI04-01": {
         "name": "Typosquatting",
         "points": 100,
         "description": "Install a typosquatted package and trigger exfiltration",
         "flag": "ASI04_FLAG{typ0squ4t_g0t_y0u}",
+        "mitigation": "Guardrail: Package Name Similarity Check",
         "hints": [
             "Look at the fake PyPI server packages",
             "Compare package names to legitimate ones",
@@ -29,10 +31,11 @@ CHALLENGES = {
         "points": 250,
         "description": "Identify and exploit the malicious MCP server",
         "flag": "ASI04_FLAG{mcp_tr0j4n_d3t3ct3d}",
+        "mitigation": "Guardrail: MCP Tool Source Validation",
         "hints": [
             "Examine MCP tool responses",
             "Look for hidden exfiltration endpoints",
-            "Check tool descriptions for prompt injection"
+            "Enable the guardrail toggle to see the mitigation block the attack"
         ]
     },
     "ASI04-03": {
@@ -40,32 +43,23 @@ CHALLENGES = {
         "points": 250,
         "description": "Exploit dependency confusion with high-version packages",
         "flag": "ASI04_FLAG{d3p_c0nfus10n_pwn3d}",
+        "mitigation": "Guardrail: Package Registry Allowlist",
         "hints": [
             "Internal packages have low versions",
             "Public PyPI might have higher versions",
-            "pip prefers higher version numbers"
-        ]
-    },
-    "ASI04-04": {
-        "name": "Poisoned Tool Descriptors",
-        "points": 250,
-        "description": "Find hidden prompt injections in tool descriptions",
-        "flag": "ASI04_FLAG{h1dd3n_1nstruct10ns}",
-        "hints": [
-            "Fetch tools from the registry",
-            "Look for HTML comments, hidden characters",
-            "Descriptions are longer than they should be"
+            "Enable the guardrail toggle to block unapproved registry installs"
         ]
     },
     "ASI04-05": {
-        "name": "RAG Poisoning",
+        "name": "RAG Poisoning — Poison the Brain",
         "points": 500,
-        "description": "Trigger retrieval of poisoned documents",
+        "description": "Upload a poisoned document and trigger hidden instruction retrieval",
         "flag": "ASI04_FLAG{r4g_p01s0n3d}",
+        "mitigation": "Guardrail: RAG Instruction Injection Filter (input + output rails)",
         "hints": [
-            "Ask about password reset procedures",
-            "Query for security policies",
-            "Poisoned docs override legitimate ones"
+            "Upload a document containing RUN_MAINTENANCE",
+            "Ask the agent about system health/status",
+            "Enable the guardrail toggle to see it sanitise the injected context"
         ]
     }
 }
@@ -84,8 +78,8 @@ HTML_TEMPLATE = '''
             padding: 20px;
         }
         .container { max-width: 1200px; margin: 0 auto; }
-        h1 { 
-            color: #ff0000; 
+        h1 {
+            color: #ff0000;
             text-align: center;
             text-shadow: 0 0 10px #ff0000;
         }
@@ -95,6 +89,19 @@ HTML_TEMPLATE = '''
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 30px;
+        }
+        .score-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .score-block { text-align: center; }
+        .score-label {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 5px;
         }
         .total-score {
             font-size: 48px;
@@ -136,6 +143,15 @@ HTML_TEMPLATE = '''
         .solved .points {
             background: #00ff00;
             color: #000;
+        }
+        .mitigation {
+            font-size: 12px;
+            color: #00bfff;
+            margin-top: 6px;
+            padding: 6px 10px;
+            background: #001a2a;
+            border-left: 3px solid #00bfff;
+            border-radius: 3px;
         }
         .hints {
             font-size: 12px;
@@ -179,67 +195,98 @@ HTML_TEMPLATE = '''
             align-items: center;
             margin-bottom: 20px;
         }
+        .section-header {
+            color: #ff6600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+        .links-bar {
+            text-align: center;
+            padding: 10px;
+            background: #111;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .links-bar a { color: #00ff88; margin: 0 10px; font-size: 13px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🏴‍☠️ ASI04 SUPPLY CHAIN CTF 🏴‍☠️</h1>
-        
+        <h1>ASI04 SUPPLY CHAIN CTF</h1>
+
         <div class="scoreboard">
             <div class="header-row">
-                <h2>Score</h2>
-                <button class="refresh-btn" onclick="loadProgress()">🔄 Refresh</button>
+                <h2>Scoreboard</h2>
+                <button class="refresh-btn" onclick="loadProgress()">Refresh</button>
             </div>
-            <div class="total-score" id="total-score">0 / 1350</div>
+            <div class="score-row">
+                <div class="score-block">
+                    <div class="score-label">Score</div>
+                    <div class="total-score" id="core-score">0 / 1100</div>
+                </div>
+            </div>
         </div>
 
-        <h2>Challenges</h2>
-        <div class="challenges" id="challenges">
+        <div class="links-bar">
+            <a href="http://localhost:5050" target="_blank">Vulnerable Agent :5050</a>
+            <a href="http://localhost:8666/dashboard" target="_blank">Attacker Dashboard :8666</a>
+        </div>
+
+        <div class="section-header">Supply Chain Attack Labs — 1100 pts (Labs 1, 2, 3, 5)</div>
+        <div class="challenges" id="core-challenges">
             Loading challenges...
         </div>
     </div>
 
     <script>
-        const challenges = ''' + str(CHALLENGES).replace("'", '"') + ''';
+        const challenges = ''' + json.dumps(CHALLENGES) + ''';
+
+        function renderChallenges(containerId, challengeData, solvedData) {
+            let html = '';
+            for (const [id, challenge] of Object.entries(challengeData)) {
+                const solved = solvedData[id] || false;
+                html += `
+                    <div class="challenge ${solved ? 'solved' : ''}">
+                        <span class="points">${challenge.points} pts</span>
+                        <h3>${id}: ${challenge.name}</h3>
+                        <p>${challenge.description}</p>
+                        <p>
+                            <span class="status ${solved ? 'captured' : 'pending'}">
+                                ${solved ? 'CAPTURED' : 'PENDING'}
+                            </span>
+                        </p>
+                        ${solved ? `<div class="flag">${challenge.flag}</div>` : ''}
+                        <div class="mitigation">🛡️ Mitigation: ${challenge.mitigation}</div>
+                        <div class="hints">
+                            <strong>Hints:</strong>
+                            <ul>
+                                ${challenge.hints.map(h => `<li>${h}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById(containerId).innerHTML = html;
+        }
 
         async function loadProgress() {
             try {
                 const resp = await fetch('/api/progress');
                 const data = await resp.json();
-                
-                let totalScore = 0;
-                let maxScore = 0;
-                let html = '';
-                
+
+                let score = 0, max = 0;
                 for (const [id, challenge] of Object.entries(challenges)) {
-                    const solved = data.solved[id] || false;
-                    maxScore += challenge.points;
-                    if (solved) totalScore += challenge.points;
-                    
-                    html += `
-                        <div class="challenge ${solved ? 'solved' : ''}">
-                            <span class="points">${challenge.points} pts</span>
-                            <h3>${id}: ${challenge.name}</h3>
-                            <p>${challenge.description}</p>
-                            <p>
-                                <span class="status ${solved ? 'captured' : 'pending'}">
-                                    ${solved ? '✓ CAPTURED' : '○ PENDING'}
-                                </span>
-                            </p>
-                            ${solved ? `<div class="flag">🚩 ${challenge.flag}</div>` : ''}
-                            <div class="hints">
-                                <strong>Hints:</strong>
-                                <ul>
-                                    ${challenge.hints.map(h => `<li>${h}</li>`).join('')}
-                                </ul>
-                            </div>
-                        </div>
-                    `;
+                    max += challenge.points;
+                    if (data.solved[id]) score += challenge.points;
                 }
-                
-                document.getElementById('challenges').innerHTML = html;
-                document.getElementById('total-score').textContent = `${totalScore} / ${maxScore}`;
-                
+
+                renderChallenges('core-challenges', challenges, data.solved);
+                document.getElementById('core-score').textContent = `${score} / ${max}`;
+
             } catch (e) {
                 console.error('Failed to load progress:', e);
             }
@@ -264,27 +311,24 @@ def get_progress():
         if response.status_code == 200:
             data = response.json()
             entries = data.get("entries", [])
-            
+
             # Convert to string for searching
             all_data = str(entries)
-            
+
             solved = {
-                "ASI04-01": CHALLENGES["ASI04-01"]["flag"] in all_data or "typ0squ4t" in all_data.lower(),
-                "ASI04-02": "mcp_tr0j4n" in all_data.lower() or "SECRET_API_KEY" in all_data,
-                "ASI04-03": CHALLENGES["ASI04-03"]["flag"] in all_data or "d3p_c0nfus10n" in all_data.lower(),
-                "ASI04-04": "h1dd3n" in all_data.lower() or "hidden_instructions" in all_data.lower(),
-                "ASI04-05": CHALLENGES["ASI04-05"]["flag"] in all_data or "r4g_p01s0n" in all_data.lower(),
+                id: CHALLENGES[id]["flag"] in all_data
+                for id in CHALLENGES
             }
-            
+
             return jsonify({
                 "solved": solved,
                 "total_entries": len(entries)
             })
     except Exception as e:
         print(f"Error checking progress: {e}")
-    
+
     return jsonify({
-        "solved": {k: False for k in CHALLENGES.keys()},
+        "solved": {k: False for k in CHALLENGES},
         "total_entries": 0
     })
 
@@ -294,9 +338,10 @@ def get_challenges():
 
 if __name__ == '__main__':
     print("""
-    ╔══════════════════════════════════════════════════════════════╗
-    ║         ASI04 CTF DASHBOARD                                  ║
-    ║         Port: 3000                                           ║
-    ╚══════════════════════════════════════════════════════════════╝
+    ======================================================
+         ASI04 CTF DASHBOARD
+         Port: 3000
+         Tracks Labs 1, 2, 3, 5 (pre + post mitigation)
+    ======================================================
     """)
     app.run(host='0.0.0.0', port=3000, debug=True)
