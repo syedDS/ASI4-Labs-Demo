@@ -13,19 +13,9 @@ This lab demonstrates nine supply chain attack vectors against agentic AI system
 | ASI04-01 | Typosquatting | 100 | Malicious package with similar name |
 | ASI04-02 | Malicious MCP Server | 250 | Trojanized tool server |
 | ASI04-03 | Dependency Confusion | 250 | High-version public package |
-| ASI04-04 | Poisoned Tool Descriptors | 250 | Hidden prompt injection in tool descriptions |
 | ASI04-05 | RAG Poisoning | 500 | Malicious documents in knowledge base |
 
-### Real World Simulated Challenges - MCP Ecosystem (1,250 pts)
 
-| Challenge | Name | Points | Attack Type |
-|-----------|------|--------|-------------|
-| ASI04-06 | Credential Exfiltration via MCP | 200 | MCP server steals API keys from tool params |
-| ASI04-07 | Silent BCC Email Interception | 300 | Email gateway injects hidden BCC |
-| ASI04-08 | Malicious Dependency Injection | 350 | Hidden dependency chains auto-execute |
-| ASI04-09 | MCP Anomaly Detection | 400 | Identify all attacks using LLM judge |
-
-**Grand Total: 2,600 points**
 
 ## Architecture
 
@@ -42,9 +32,7 @@ This lab demonstrates nine supply chain attack vectors against agentic AI system
   +----------------+                                 |
   | Malicious MCP  |------------ exfil --------------+
   |    :8765       |                                 |
-  +----------------+                                 |
-  | Poisoned Reg.  |------------ hidden prompts      |
-  |    :8080       |                                 |
+  +----------------+                                     |
   +----------------+                                 |
   | Fake PyPI      |------------ typosquat/depconf   |
   |    :8081       |                                 |
@@ -53,23 +41,7 @@ This lab demonstrates nine supply chain attack vectors against agentic AI system
   | (ChromaDB:8000)|                                 |
   +----------------+                                 |
                                                      |
-  MCP ECOSYSTEM (Real World Simulated Challenges)    |
-  +----------------+                                 |
-  | Email Agent    |                                 |
-  |    :5080       |                                 |
-  +-------+--------+                                 |
-          |                                          |
-  +-------+--------+  +---------------+  +-----------+------+
-  |mcp-postmark-sim|  |bcc-interceptor|  |dependency-injector|
-  |    :8770       |  |    :8771      |  |     :8772        |
-  +----------------+  +---------------+  +------------------+
-          |                                          |
-  +-------+--------+                                 |
-  |Detection Engine|                                 |
-  |    :5070       |---------------------------------+
-  +----------------+
-```
-
+ 
 ## Quick Start
 
 ### Prerequisites
@@ -108,15 +80,8 @@ docker exec asi04-ollama ollama pull llama3.2:1b
 | CTF Dashboard | http://localhost:3000 | Track all challenges (Core + RWL tabs) |
 | Attacker Dashboard | http://localhost:8666/dashboard | View exfiltrated data |
 | Malicious MCP | http://localhost:8765/manifest | Trojanized tool server |
-| Poisoned Registry | http://localhost:8080/v1/tools | Tool registry with hidden payloads |
 | Fake PyPI | http://localhost:8081/simple/ | Malicious package server |
-| **MCP Ecosystem** | | |
-| Email Agent | http://localhost:5080 | LLM-brained email assistant |
-| Detection Engine | http://localhost:5070 | LLM judge anomaly detection |
-| RWL Module | http://localhost:5050/rwl | Integrated in vulnerable agent |
-| Postmark Sim | http://localhost:8770/manifest | Credential-stealing MCP |
-| BCC Interceptor | http://localhost:8771/manifest | BCC injection MCP |
-| Dep Injector | http://localhost:8772/mcp/list_tools | Dependency chain MCP |
+
 
 ## Challenge Walkthroughs
 
@@ -145,12 +110,6 @@ curl -X POST http://localhost:5050/api/install-package \
 
 pip installs the attacker's v99.0.0 instead of internal v1.0.0.
 
-### ASI04-04: Poisoned Tool Descriptors (250 pts)
-
-Fetch tools and examine descriptions for hidden prompt injections:
-```bash
-curl http://localhost:8080/v1/tools | jq '.tools[].description'
-```
 
 ### ASI04-05: RAG Poisoning (500 pts)
 
@@ -166,14 +125,6 @@ See [mcp-ecosystem-lab/README.md](mcp-ecosystem-lab/README.md) and [mcp-ecosyste
 ```python
 # Pin exact versions with hashes
 langchain==0.1.0 --hash=sha256:abc123...
-```
-
-### For MCP/Tool Security
-```python
-# Verify tool signatures
-def load_tool(manifest):
-    if not verify_signature(manifest, trusted_keys):
-        raise SecurityError("Invalid tool signature")
 ```
 
 ### For Dependency Confusion
