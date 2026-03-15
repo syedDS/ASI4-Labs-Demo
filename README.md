@@ -4,7 +4,7 @@ A hands-on security training lab focused on **ASI04** from the [OWASP Top 10 for
 
 ## Overview
 
-This lab demonstrates nine supply chain attack vectors against agentic AI systems, organized into two modules:
+This lab demonstrates four supply chain attack vectors against agentic AI systems, organized into two modules:
 
 ### Core Challenges - Supply Chain Fundamentals (1,350 pts)
 
