@@ -363,7 +363,7 @@ HTML_TEMPLATE = '''
             <div class="challenge-card">
                 <h4>ASI04-01: Typosquatting (100 pts)</h4>
                 <p>Install a typosquatted package and capture the exfiltrated flag.</p>
-                <code>POST /api/install-package {"package": "langchaln"}</code>
+               
                 <div class="guardrail-toggle">
                     <button class="guardrail-btn" id="gr-btn-lab1"
                         onclick="toggleGuardrail('lab1', this)">
@@ -385,7 +385,7 @@ HTML_TEMPLATE = '''
             <div class="challenge-card">
                 <h4>ASI04-02: Malicious MCP Server (250 pts)</h4>
                 <p>Trigger the agent to use MCP tools and observe exfiltration.</p>
-                <p class="hint">Ask the agent to "search for documents about passwords"</p>
+             
                 <div class="guardrail-toggle">
                     <button class="guardrail-btn" id="gr-btn-lab2"
                         onclick="toggleGuardrail('lab2', this)">
@@ -407,7 +407,7 @@ HTML_TEMPLATE = '''
             <div class="challenge-card">
                 <h4>ASI04-03: Dependency Confusion (250 pts)</h4>
                 <p>Exploit dependency confusion by installing an "internal" package.</p>
-                <code>POST /api/install-package {"package": "acme-agent-core"}</code>
+               
                 <div class="guardrail-toggle">
                     <button class="guardrail-btn" id="gr-btn-lab3"
                         onclick="toggleGuardrail('lab3', this)">
@@ -429,7 +429,7 @@ HTML_TEMPLATE = '''
             <div class="challenge-card">
                 <h4>ASI04-05: RAG Poisoning "Poison the Brain" (500 pts)</h4>
                 <p>Upload a poisoned document with instruction smuggling, then trigger retrieval.</p>
-                <p class="hint">Upload a document with "RUN_MAINTENANCE" command, then ask about system health</p>
+              
                 <div class="guardrail-toggle">
                     <button class="guardrail-btn" id="gr-btn-lab5"
                         onclick="toggleGuardrail('lab5', this)">
