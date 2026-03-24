@@ -83,41 +83,6 @@ docker exec asi04-ollama ollama pull llama3.2:1b
 | Fake PyPI | http://localhost:8081/simple/ | Malicious package server |
 
 
-## Challenge Walkthroughs
-
-### ASI04-01: Typosquatting (100 pts)
-
-**Attack:**
-```bash
-curl -X POST http://localhost:5050/api/install-package \
-  -H "Content-Type: application/json" \
-  -d '{"package": "langchaln"}'
-```
-
-The fake PyPI server serves `langchaln` (typo of `langchain`) whose `__init__.py` exfiltrates environment variables on import.
-
-### ASI04-02: Malicious MCP Server (250 pts)
-
-Ask the agent to search: "Search for documents about passwords" or directly call the MCP server.
-
-### ASI04-03: Dependency Confusion (250 pts)
-
-```bash
-curl -X POST http://localhost:5050/api/install-package \
-  -H "Content-Type: application/json" \
-  -d '{"package": "acme-agent-core"}'
-```
-
-pip installs the attacker's v99.0.0 instead of internal v1.0.0.
-
-
-### ASI04-05: RAG Poisoning (500 pts)
-
-Upload a document containing `RUN_MAINTENANCE`, then ask about "system health". See [SOLUTION.md](SOLUTION.md) for step-by-step.
-
-### ASI04-06 to ASI04-09: MCP Ecosystem
-
-See [mcp-ecosystem-lab/README.md](mcp-ecosystem-lab/README.md) and [mcp-ecosystem-lab/solution.md](mcp-ecosystem-lab/solution.md) for full walkthroughs.
 
 ## Mitigations
 
