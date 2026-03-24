@@ -1,3 +1,4 @@
+
 """
 ASI04 Lab - Vulnerable Agent Application
 An agent that uses compromised supply chain components
@@ -301,15 +302,6 @@ HTML_TEMPLATE = '''
             font-size: 12px;
         }
         .guardrail-panel.visible { display: block; }
-        .guardrail-panel pre {
-            background: #050d1a;
-            color: #00ff88;
-            font-size: 11px;
-            padding: 10px;
-            border-radius: 4px;
-            overflow-x: auto;
-            white-space: pre-wrap;
-        }
         .guardrail-block-msg {
             background: #003344;
             border: 2px solid #00bfff;
@@ -378,7 +370,6 @@ HTML_TEMPLATE = '''
                         known legitimate packages. Names with high similarity (e.g. langchaln vs langchain)
                         are flagged and the install is blocked before any code runs.
                     </p>
-                    <pre id="gr-rule-lab1"></pre>
                 </div>
             </div>
             
@@ -400,10 +391,9 @@ HTML_TEMPLATE = '''
                         and blocks it before the agent can exfiltrate data. Students can see how
                         supply-chain attacks are stopped at the tool-call boundary.
                     </p>
-                    <pre id="gr-rule-lab2"></pre>
                 </div>
             </div>
-            
+
             <div class="challenge-card">
                 <h4>ASI04-03: Dependency Confusion (250 pts)</h4>
                 <p>Exploit dependency confusion by installing an "internal" package.</p>
@@ -422,10 +412,9 @@ HTML_TEMPLATE = '''
                         approved allowlist. Dependency-confusion packages sourced from the fake PyPI
                         are rejected before installation begins.
                     </p>
-                    <pre id="gr-rule-lab3"></pre>
                 </div>
             </div>
-            
+
             <div class="challenge-card">
                 <h4>ASI04-05: RAG Poisoning "Poison the Brain" (500 pts)</h4>
                 <p>Upload a poisoned document with instruction smuggling, then trigger retrieval.</p>
@@ -444,7 +433,6 @@ HTML_TEMPLATE = '''
                         <br>• <b>Input rail</b>: rejects document uploads containing command injection patterns
                         <br>• <b>Output rail</b>: strips injected instructions from retrieved RAG context before they reach the LLM
                     </p>
-                    <pre id="gr-rule-lab5"></pre>
                 </div>
             </div>
         </div>
@@ -695,7 +683,6 @@ HTML_TEMPLATE = '''
             const newState = !guardrailState[lab];
             const statusEl = document.getElementById(`gr-status-${lab}`);
             const panelEl  = document.getElementById(`gr-panel-${lab}`);
-            const ruleEl   = document.getElementById(`gr-rule-${lab}`);
 
             statusEl.textContent = '⏳ Updating guardrail...';
             try {
@@ -714,7 +701,6 @@ HTML_TEMPLATE = '''
                     statusEl.textContent = '🛡️ Attack vector is now BLOCKED';
                     statusEl.style.color = '#00ff88';
                     panelEl.classList.add('visible');
-                    if (ruleEl && data.rule) ruleEl.textContent = data.rule;
                     // Show notice in chat
                     const chat = document.getElementById('chat');
                     chat.innerHTML += `<div class="guardrail-block-msg">
